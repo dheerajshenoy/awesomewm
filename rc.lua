@@ -3,6 +3,7 @@
 pcall(require, "luarocks.loader")
 -- Standard awesome library
 local gears = require("gears")
+local shape = require("gears.shape")
 local awful = require("awful")
 require("awful.autofocus")
 -- Widget and layout library
@@ -13,6 +14,16 @@ local beautiful = require("beautiful")
 local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup")
+
+local autostart = "/home/redundant/.config/awesome/autostart.sh"
+
+awful.spawn(autostart .. " nm-applet")
+awful.spawn(autostart .. " xfce4-power-manager")
+awful.spawn(autostart .. " nitrogen --restore")
+awful.spawn(autostart .. " sxhkd")
+awful.spawn(autostart .. " volumeicon")
+awful.spawn(autostart .. " /lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+
 -- Enable hotkeys help widget for VIM and other apps
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
@@ -52,10 +63,10 @@ awful.layout.layouts = {
     awful.layout.suit.tile.top,
     awful.layout.suit.fair,
     awful.layout.suit.fair.horizontal,
-    awful.layout.suit.spiral,
-    awful.layout.suit.spiral.dwindle,
+--    awful.layout.suit.spiral,
+--    awful.layout.suit.spiral.dwindle,
     awful.layout.suit.max,
-    awful.layout.suit.max.fullscreen,
+--    awful.layout.suit.max.fullscreen,
     awful.layout.suit.magnifier,
     awful.layout.suit.corner.nw,
     awful.layout.suit.floating,
@@ -117,21 +128,91 @@ local tasklist_buttons = gears.table.join(
                                               awful.client.focus.byidx(-1)
                                           end))
 
+
 -- CUSTOM WIDGETS
+
+
+mymusicwidget, volume_updater = wibox.widget {
+    {
+        left = 100,
+        right = 100,
+        align = "center",
+        valign = "center",
+        font   = "JetBrainsMono Nerd Font Mono Bold 10",
+        widget = awful.widget.watch("t=$(ponymix get-volume); echo $t", 180, function(widget, stdout)
+            widget.markup = "<span foreground='#ffffff'>  " .. tostring(stdout) .. "</span>"
+        end)
+    }
+    ,bg = "#A00863"
+    , shape = function(cr, width, height)
+        shape.transform(shape.powerline):rotate_at(width/2, height/2, math.pi) (cr, width, height) end
+    , widget = wibox.container.background
+    }
+-- custom textclock
 mytextclock = wibox.widget{
-        clock_format = " %I:%M %p "
-        ,markup   = "<span foreground='#DBFFFF'><b> </b></span>"
-        , align  = "center"
-        , font   = "JetBrainsMono Nerd Font Mono Bold 12"
-        , widget = wibox.widget.textclock(clock_format)
-        }
+    {
+    clock_format = " %I:%M %p "
+    , align  = "center"
+    , valign = "center"
+    , font   = "JetBrainsMono Nerd Font Mono Bold 10"
+    , widget = awful.widget.watch("date '+%I:%M %p   '", 60, function(widget, stdout)
+        widget.markup = "<span foreground='#ffffff'>  " .. tostring(stdout) .. "</span>"
+    end)
+    }
+    ,bg = "#A00863"
+    , shape = function(cr, width, height)
+        shape.transform(shape.powerline):rotate_at(width/2, height/2, math.pi) (cr, width, height) end
+    , widget = wibox.container.background
+}
+
+-- custom systray
+mysystray = wibox.widget {
+    {
+      bg = "#FF7FCC"
+      , widget = wibox.widget.systray()
+},
+    shape = function(cr, width, height) 
+        shape.transform(shape.powerline):rotate_at(width/2, height/2, math.pi) (cr, width, height) end
+    , widget = wibox.container.background
+}
+
+-- custom ramwidget
+myramwidget = wibox.widget {
+    {
+    font   = "JetBrainsMono Nerd Font Mono Bold 10"
+    , widget = awful.widget.watch("/home/redundant/scripts/mem.sh", 5, function(widget, stdout)
+    widget.markup = "<span foreground='#ffffff'> " .. tostring(stdout) .. "</span>"
+end)
+    },
+    bg = "#BF0B78"
+    , shape = function(cr, width, height)
+        shape.transform(shape.powerline):rotate_at(width/2, height/2, math.pi) (cr, width, height) end
+    , widget = wibox.container.background
+}
+myramwidget:buttons(gears.table.join(
+        awful.button({ }, 1, function() awful.spawn(terminal .. " -e htop") end)
+        ))
+
+-- todo widget for calcurse
+mytodowidget = wibox.widget {
+    {
+    font   = "JetBrainsMono Nerd Font Mono Bold 10"
+    , widget = awful.widget.watch("/home/redundant/scripts/calcurse.sh", 70, function(widget, stdout)
+    widget.markup = "<span foreground='#ffffff'> " .. tostring(stdout) .. "</span>"
+end)
+    },
+    bg = "#D23092"
+    , shape = function(cr, width, height)
+        shape.transform(shape.powerline):rotate_at(width/2, height/2, math.pi) (cr, width, height) end
+    , widget = wibox.container.background
+}
 
 mytextclock:buttons(gears.table.join(
         awful.button({ }, 1, function() awful.spawn(terminal .. " -e calcurse") end)))
 
 awful.screen.connect_for_each_screen(function(s)
     
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -146,8 +227,8 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytaglist = awful.widget.taglist {
         screen  = s,
         filter  = awful.widget.taglist.filter.all,
-        buttons = taglist_buttons
-    }
+        buttons = taglist_buttons,
+}
 
     -- Create a tasklist widget
      s.mytasklist = awful.widget.tasklist {
@@ -160,7 +241,7 @@ awful.screen.connect_for_each_screen(function(s)
         shape        = gears.shape.rectangle,
     },
     layout   = {
-        spacing = 10,
+        spacing = 100,
         spacing_widget = {
             {
                 forced_width = 5,
@@ -208,16 +289,18 @@ awful.screen.connect_for_each_screen(function(s)
         layout = wibox.layout.align.horizontal,
         { -- Left widgets
             layout = wibox.layout.fixed.horizontal,
-            mylauncher,
             s.mytaglist,
-            s.mypromptbox,
-        },
-            s.mytasklist, -- Middle widget
-        { -- Right widgets
-            layout = wibox.layout.fixed.horizontal,
-            wibox.widget.systray(),
-            mytextclock,
             s.mylayoutbox,
+        },
+            s.separator,
+        { -- Right widgets
+            spacing = -8,
+            layout = wibox.layout.fixed.horizontal,
+            mymusicwidget,
+            mytodowidget,
+            myramwidget,
+            mytextclock,
+            mysystray,
         },
     }
 end)
@@ -239,9 +322,6 @@ globalkeys = gears.table.join(
               {description = "view previous", group = "tag"}),
     awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
               {description = "view next", group = "tag"}),
-    awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
-              {description = "go back", group = "tag"}),
-
     awful.key({ modkey,           }, "j",
         function ()
             awful.client.focus.byidx( 1)
@@ -314,24 +394,33 @@ globalkeys = gears.table.join(
               end,
               {description = "restore minimized", group = "client"}),
 
-    -- Prompt
-    awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
-              {description = "run prompt", group = "launcher"}),
+-- CUSTOM KEYS
+    awful.key({ }, "XF86AudioRaiseVolume", function ()
+        awful.spawn("ponymix increase 5") 
+        awesome.emit_signal("volume_signal")
+    end,
+        {description = "increase volume", group = "custom"}),
+    
+    awful.key({ }, "XF86AudioLowerVolume", function ()
+        awful.spawn("ponymix decrease 5") 
+        awesome.emit_signal("volume_signal")
+    end,
+        {description = "decrease volume", group = "custom"}),
+    
+    awful.key({ }, "XF86AudioMute", function ()
+        awful.spawn("ponymix toggle") end,
+        {description = "toggle volume", group = "custom"}),
 
-    awful.key({ modkey }, "x",
-              function ()
-                  awful.prompt.run {
-                    prompt       = "Run Lua code: ",
-                    textbox      = awful.screen.focused().mypromptbox.widget,
-                    exe_callback = awful.util.eval,
-                    history_path = awful.util.get_cache_dir() .. "/history_eval"
-                  }
-              end,
-              {description = "lua execute prompt", group = "awesome"}),
-    -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end,
-              {description = "show the menubar", group = "launcher"})
-)
+              -- Show/Hide Wibox
+ awful.key({ modkey }, "b", function ()
+         for s in screen do
+             s.mywibox.visible = not s.mywibox.visible
+             if s.mybottomwibox then
+                 s.mybottomwibox.visible = not s.mybottomwibox.visible
+             end
+        end
+     end,
+     {description = "toggle wibox", group = "awesome"}))
 
 clientkeys = gears.table.join(
     awful.key({ modkey,           }, "f",
@@ -380,7 +469,7 @@ clientkeys = gears.table.join(
 -- Bind all key numbers to tags.
 -- Be careful: we use keycodes to make it work on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
-for i = 1, 9 do
+for i = 1, 10 do
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
@@ -470,6 +559,9 @@ awful.rules.rules = {
         },
         class = {
           "Arandr",
+          "Nitrogen",
+          "Pavucontrol",
+          "Gimp",
           "Blueman-manager",
           "Gpick",
           "Kruler",
@@ -585,9 +677,11 @@ screen.connect_signal("arrange", function (s)
     for _, c in pairs(s.clients) do
         if (max or only_one) and not c.floating or c.maximized then
             c.border_width = 0
+            awful.titlebar.hide(c)
+        elseif c.floating then
+            awful.titlebar.show(c)
         else
             c.border_width = beautiful.border_width
         end
     end
 end)
-
